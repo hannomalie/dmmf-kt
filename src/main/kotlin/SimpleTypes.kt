@@ -7,8 +7,8 @@ import com.github.michaelbull.result.fold
 
 data class String50 private constructor(val value: String) {
     companion object {
-        fun create(fieldName: String, str: String): Result<String50, String> = ConstrainedType.createString(fieldName, ::String50, 50, str)
-        fun createOption(fieldName: String, str: String?) = ConstrainedType.createStringOption(fieldName, ::String50, 50, str)
+        fun create(fieldName: String, str: String?): Result<String50, String> = ConstrainedType.createString(fieldName, ::String50, 50, str)
+        fun createOption(fieldName: String, str: String?): Result<String50, String> = ConstrainedType.createStringOption(fieldName, ::String50, 50, str)
     }
 }
 enum class VipStatus {
@@ -33,8 +33,7 @@ data class EmailAddress private constructor(val value: String) {
     }
 }
 
-class State {
-}
+data class State(val code: UsStateCode)
 
 data class ZipCode(val value: String) {
     companion object {
@@ -60,6 +59,7 @@ data class OrderLineId(val value: String) {
 }
 // TODO: Original code has an intermediate datatype, but I don't know why
 sealed interface ProductCode {
+    val value: String
     companion object {
         fun create(fieldName: String, code: String?): Result<ProductCode, String> {
             return if(code.isNullOrBlank()) {
@@ -75,13 +75,13 @@ sealed interface ProductCode {
     }
 
 }
-data class WidgetCode(val value: String): ProductCode {
+data class WidgetCode(override val value: String): ProductCode {
     companion object {
         private val pattern = Regex.fromLiteral("W\\d{4}")
         fun create(fieldName: String, code: String?) = ConstrainedType.createLike(fieldName, ::UsStateCode, pattern, code)
     }
 }
-data class GizmoCode(val value: String): ProductCode {
+data class GizmoCode(override val value: String): ProductCode {
     companion object {
         private val pattern = Regex.fromLiteral("G\\d{3}")
         fun create(fieldName: String, code: String?) = ConstrainedType.createLike(fieldName, ::GizmoCode, pattern, code)
@@ -91,9 +91,9 @@ sealed interface OrderQuantity {
     val value: Number
 
     companion object {
-        fun create(fieldName: String, productCode: ProductCode, quantity: OrderQuantity): Result<OrderQuantity, String> = when(productCode) {
-            is WidgetCode -> UnitQuantity.create(fieldName, quantity.value.toInt())
-            is GizmoCode -> KilogramQuantity.create(fieldName, quantity.value.toFloat())
+        fun create(fieldName: String, productCode: ProductCode, quantity: Number): Result<OrderQuantity, String> = when(productCode) {
+            is WidgetCode -> UnitQuantity.create(fieldName, quantity.toInt())
+            is GizmoCode -> KilogramQuantity.create(fieldName, quantity.toFloat())
         }
     }
 
@@ -110,11 +110,10 @@ data class KilogramQuantity(override val value: Float): OrderQuantity {
 }
 data class Price(val value: Float) {
     fun multiply(p: Price): Result<Price, String> = create(value * p.value)
+    fun multiply(amount: Number): Result<Price, String> = create(value * amount.toInt())
     companion object {
         fun create(v: Float) = ConstrainedType.createDecimal("Price", ::Price, 0.0f, 1000f, v)
-        fun unsafeCreate(fieldName: String, v: Result<Float, String>) {
-            return v.fold({ it -> it}, { throw IllegalStateException("Not expecting Price to be out of bounds: $it") })
-        }
+        fun unsafeCreate(v: Float) = create(v).fold({ it }, { throw IllegalStateException("Not expecting Price to be out of bounds: $it") })
     }
 }
 data class BillingAmount(val value: Float) {
@@ -147,8 +146,8 @@ object ConstrainedType {
         Ok(ctor(str))
     }
 
-    fun <T> createStringOption(fieldName: String, ctor: (String) -> T, maxLength: Int, str: String?): Result<T?, String> = if(str.isNullOrBlank()) {
-        Ok(null)
+    fun <T> createStringOption(fieldName: String, ctor: (String) -> T, maxLength: Int, str: String?): Result<T, String> = if(str.isNullOrBlank()) {
+        Err("Input string must not be empty") // This is not exactly as in the original, but Optional is not a result, so we encode absence as an error
     } else if(str.length > maxLength) {
         Err("$fieldName must not be more than $maxLength chars")
     } else {
@@ -180,4 +179,4 @@ object ConstrainedType {
     }
 }
 
-class City
+data class City(val value: String50)

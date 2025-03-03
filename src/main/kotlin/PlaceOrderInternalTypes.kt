@@ -2,7 +2,7 @@ package org.example
 
 import com.github.michaelbull.result.Result
 
-internal fun interface CheckProductCodeExists { operator fun invoke(productCode: ProductCode): Boolean }
+fun interface CheckProductCodeExists { operator fun invoke(productCode: ProductCode): Boolean }
 
 sealed interface AddressValidationError
 data object InvalidFormat: AddressValidationError
@@ -10,7 +10,7 @@ data object AddressNotFound: AddressValidationError
 
 data class CheckedAddress(val checkedAddress: UnvalidatedAddress)
 
-internal fun interface CheckAddressExists { suspend operator fun invoke(unvalidatedAddress: UnvalidatedAddress): Result<CheckedAddress, AddressValidationError> }
+fun interface CheckAddressExists { suspend operator fun invoke(unvalidatedAddress: UnvalidatedAddress): Result<CheckedAddress, AddressValidationError> }
 
 sealed interface PricingMethod
 data object Standard: PricingMethod
@@ -31,12 +31,13 @@ data class ValidatedOrder(
     val pricingMethod: PricingMethod,
 )
 
-typealias ValidateOrder =
-            suspend (CheckProductCodeExists, CheckAddressExists, UnvalidatedOrder) -> Result<ValidatedOrder, ValidationError>
+fun interface ValidateOrder {
+    suspend operator fun invoke(checkProductCodeExists: CheckProductCodeExists, checkAddressExists: CheckAddressExists, unvalidatedOrder: UnvalidatedOrder): Result<ValidatedOrder, ValidationError>
+}
 typealias GetProductPrice = (ProductCode) -> Price
 typealias TryGetProductPrice = (ProductCode) -> Price?
 typealias GetPricingFunction = (PricingMethod) -> GetProductPrice
-typealias GetStandardPrices = () -> GetProductPrice
+typealias GetStandardPrices = (ProductCode) -> Price
 typealias GetPromotionPrices = (PromotionCode) -> TryGetProductPrice
 
 
@@ -61,7 +62,7 @@ data class PricedOrder(
     val pricingMethod: PricingMethod,
 )
 
-typealias PriceOrder = (GetPricingFunction, ValidateOrder) -> Result<PricedOrder, PricingError>
+fun interface PriceOrder { operator fun invoke(getPricingFunction: GetPricingFunction, validatedOrder: ValidatedOrder): Result<PricedOrder, PricingError> }
 
 enum class ShippingMethod {
     PostalService,
@@ -79,10 +80,10 @@ data class PricedOrderWithShippingMethod(
     val pricedOrder: PricedOrder,
 )
 
-typealias CalculateShippingCost = (PricedOrder) -> Price
-typealias AddShippingInfoToOrder = (CalculateShippingCost, PricedOrder) -> PricedOrderWithShippingMethod
+fun interface CalculateShippingCost { operator fun invoke (pricedOrder: PricedOrder): Price }
+fun interface AddShippingInfoToOrder { operator fun invoke(calculateShippingCost: CalculateShippingCost, pricedOrder: PricedOrder): PricedOrderWithShippingMethod }
 
-typealias FreeVipShipping = (PricedOrderWithShippingMethod) -> PricedOrderWithShippingMethod
+fun interface FreeVipShipping { operator fun invoke(pricedOrderWithShippingMethod: PricedOrderWithShippingMethod): PricedOrderWithShippingMethod }
 
 data class HtmlString (val htmlString: String)
 
@@ -104,8 +105,14 @@ sealed interface SendResult {
     data object NotSent: SendResult
 }
 
-typealias SendOrderAcknowledgment = (OrderAcknowledgment) -> SendResult
+fun interface SendOrderAcknowledgment { operator fun invoke(orderAcknowledgment: OrderAcknowledgment): SendResult }
 
-typealias AcknowledgeOrder = (CreateOrderAcknowledgmentLetter, SendOrderAcknowledgment, PricedOrderWithShippingMethod) -> OrderAcknowledgmentSent?
+fun interface AcknowledgeOrder {
+    operator fun invoke(
+        createOrderAcknowledgmentLetter: CreateOrderAcknowledgmentLetter,
+        sendOrderAcknowledgment: SendOrderAcknowledgment,
+        pricedOrderWithShippingMethod: PricedOrderWithShippingMethod
+    ): OrderAcknowledgementSent?
+}
 
-typealias CreateEvents = (PricedOrder, OrderAcknowledgmentSent?) -> List<PlaceOrderEvent>
+fun interface CreateEvents { operator fun invoke(pricedOrder: PricedOrder, orderAcknowledgementSent: OrderAcknowledgementSent?): List<PlaceOrderEvent> }

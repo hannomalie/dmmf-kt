@@ -12,6 +12,9 @@ repositories {
 
 dependencies {
     implementation("com.michael-bull.kotlin-result:kotlin-result:2.0.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
+    implementation("com.michael-bull.kotlin-result:kotlin-result-coroutines:2.0.1")
+
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.0")
 
     testImplementation(kotlin("test"))

@@ -12,19 +12,19 @@ data class UnvalidatedCustomerInfo(
 
 data class UnvalidatedAddress(
     val addressLine1: String,
-    val addressLine2: String,
-    val addressLine3: String,
-    val addressLine4: String,
-    val city: String,
-    val zipCode: String,
-    val state: String,
-    val country: String,
+    val addressLine2: String?,
+    val addressLine3: String?,
+    val addressLine4: String?,
+    val city: String?,
+    val zipCode: String?,
+    val state: String?,
+    val country: String?,
 )
 
 data class UnvalidatedOrderLine(
     val orderLineId: String,
     val productCode: String,
-    val quantity: Float
+    val quantity: Number,
 )
 
 data class UnvalidatedOrder(
@@ -33,7 +33,7 @@ data class UnvalidatedOrder(
     val shippingAddress: UnvalidatedAddress,
     val billingAddress: UnvalidatedAddress,
     val lines: List<UnvalidatedOrderLine>,
-    val promotionCode: String
+    val promotionCode: String,
 )
 
 data class OrderAcknowledgementSent(val orderId: OrderId, val emailAddress: EmailAddress)
@@ -77,9 +77,9 @@ data class RemoteServiceError(
 )
 
 sealed interface PlaceOrderError
-data class Validation(val validationError: ValidationError)
-data class Pricing(val pricingError: PricingError)
-data class RemoteService(val remoteServiceError: RemoteServiceError)
+data class Validation(val validationError: ValidationError): PlaceOrderError
+data class Pricing(val pricingError: PricingError): PlaceOrderError
+data class RemoteService(val remoteServiceError: RemoteServiceError): PlaceOrderError
 
 
 typealias PlaceOrder = suspend (UnvalidatedOrder) -> Result<List<PlaceOrderEvent>,PlaceOrderError>

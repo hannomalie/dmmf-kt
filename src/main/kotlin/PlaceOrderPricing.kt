@@ -9,7 +9,7 @@ fun createPricingMethod(promotionCode: String?) = if (promotionCode.isNullOrBlan
 fun getPricingFunction(standardPrices: GetStandardPrices, promoPrices: GetPromotionPrices): GetPricingFunction {
     return { pricingMethod: PricingMethod ->
 
-        val getStandardPrice : GetProductPrice = standardPrices()
+        val getStandardPrice : GetProductPrice = standardPrices
 
         val getPromotionPrice = { promotionCode : PromotionCode ->
             { productCode:ProductCode ->
